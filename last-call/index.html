@@ -1,0 +1,284 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Last Call"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>Last Call</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single phone column — readout, curve, add-drink pad, tonight's log, settings */
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#16202B; --muted:#5B6878; --line:#D5DCE4;
+  --accent:#1F5F8B; --accent-ink:#FFFFFF;
+  --ok:#2E7D4F; --warn:#B7791F; --bad:#C0392B;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151C; --surface:#18212B; --ink:#E6ECF2; --muted:#93A1B1; --line:#2A3542;
+  --accent:#6FB3E0; --accent-ink:#0F151C; --ok:#5CC48A; --warn:#E3A944; --bad:#F06A5A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --surface:#18212B; --ink:#E6ECF2; --muted:#93A1B1; --line:#2A3542;
+  --accent:#6FB3E0; --accent-ink:#0F151C; --ok:#5CC48A; --warn:#E3A944; --bad:#F06A5A; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.top{display:flex;justify-content:space-between;align-items:baseline}
+.top small{color:var(--muted)}
+.banner{background:var(--surface);border:1px dashed var(--accent);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px}
+.readout{background:var(--surface);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--line)}
+.bac{font-family:var(--mono);font-size:64px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.bac span{font-size:24px;color:var(--muted);margin-left:4px}
+.pill{align-self:flex-start;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.stats div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stats b{font-family:var(--mono);font-weight:500;font-size:15px;font-variant-numeric:tabular-nums}
+.stats small{color:var(--muted);font-size:12px}
+svg{display:block;width:100%;height:auto}
+.pad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.pad button{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:left;color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.pad button:active{transform:scale(.98)}
+.pad button strong{font-family:var(--display);font-size:18px;font-weight:600}
+.pad button small{color:var(--muted)}
+.custom{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.custom .full{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.danger{background:var(--bad);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.log{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.log li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .name{min-width:0}
+.log .name small{display:block;color:var(--muted)}
+.log input[type=time]{padding:6px 8px;font-size:15px}
+.x{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px}
+.empty{padding:16px;color:var(--muted);text-align:center}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row label{flex:1 1 120px}
+.note{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head><body><div class="wrap">
+  <div class="top"><h1>Last Call</h1><small id="clock"></small></div>
+
+  <div class="banner" id="exBanner" hidden>
+    <span>Example night with example settings. Set your weight below, then start fresh.</span>
+    <button class="btn" id="startFresh">Start fresh</button>
+  </div>
+
+  <section class="readout" aria-live="polite">
+    <div class="bac" id="bac">0.000<span>%</span></div>
+    <div class="pill" id="pill">Sober</div>
+    <div class="stats">
+      <div><small>Peak</small><b id="peak">—</b><small id="peakAt"></small></div>
+      <div><small>Under 0.08</small><b id="legal">—</b><small id="legalIn"></small></div>
+      <div><small>Back to 0.00</small><b id="sober">—</b><small id="soberIn"></small></div>
+    </div>
+    <div id="chart"></div>
+  </section>
+
+  <section>
+    <h2>Add a drink</h2>
+    <div class="pad">
+      <button data-oz="12" data-abv="5" data-label="Beer"><strong>Beer</strong><small>12 oz · 5%</small></button>
+      <button data-oz="5" data-abv="12" data-label="Wine"><strong>Wine</strong><small>5 oz · 12%</small></button>
+      <button data-oz="1.5" data-abv="40" data-label="Shot"><strong>Shot / cocktail</strong><small>1.5 oz · 40%</small></button>
+      <button id="customToggle"><strong>Custom</strong><small>Set size and strength</small></button>
+    </div>
+    <form class="custom" id="customForm" hidden style="margin-top:10px">
+      <label class="full">Name<input id="cName" value="IPA" maxlength="30"></label>
+      <label>Ounces<input id="cOz" type="number" inputmode="decimal" step="0.5" min="0.5" value="16"></label>
+      <label>Alcohol %<input id="cAbv" type="number" inputmode="decimal" step="0.5" min="0.5" max="95" value="7"></label>
+      <button class="btn full" type="submit">Add custom drink</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Tonight · <span id="count">0</span> drinks · <span id="std">0</span> standard</h2>
+    <ul class="log" id="log"></ul>
+    <div class="row" style="margin-top:10px;justify-content:flex-end" id="clearRow">
+      <button class="btn ghost" id="clearBtn">Clear night</button>
+    </div>
+    <div class="row" id="confirmRow" hidden style="margin-top:10px;justify-content:flex-end">
+      <span class="note">Delete all drinks from tonight?</span>
+      <button class="btn ghost" id="cancelClear">Keep</button>
+      <button class="btn danger" id="confirmClear">Delete all</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>You</h2>
+    <div class="row">
+      <label>Body weight<input id="weight" type="number" inputmode="decimal" min="40" max="700" step="1"></label>
+      <label>Unit<select id="unit"><option value="lb">lb</option><option value="kg">kg</option></select></label>
+      <label>Sex (for body water)<select id="sex"><option value="m">Male</option><option value="f">Female</option></select></label>
+    </div>
+  </section>
+
+  <p class="note">Estimate from the Widmark formula: alcohol grams ÷ (body weight × body-water ratio 0.68 male / 0.55 female), each drink absorbed over 30 minutes, eliminated at 0.015% per hour. One standard drink is 14 g of alcohol. Food, medications, health and metabolism move real numbers by a wide margin. Never use this to decide whether you can drive. Your log stays on this phone only.</p>
+</div>
+
+<script>
+// Pure BAC model shared by the app and the test.
+// Widmark: BAC% = grams / (body weight in grams * r) * 100, minus 0.015 per hour elimination.
+// Each drink is absorbed evenly over ABSORB_MIN minutes; elimination is zero-order while BAC > 0.
+const R = { m: 0.68, f: 0.55 };
+const ELIM_PER_HR = 0.015;
+const ABSORB_MIN = 30;
+const MIN = 60000;
+
+function gramsOf(oz, abvPct) { return oz * 29.5735 * (abvPct / 100) * 0.789; }
+
+function simulate(drinks, s, now) {
+  const wKg = s.unit === 'kg' ? s.weight : s.weight * 0.453592;
+  const out = { series: [], current: 0, peak: 0, peakT: null, legalT: null, soberT: null };
+  if (!drinks.length || !(wKg > 0)) return out;
+  const k = 100 / (wKg * 1000 * R[s.sex]);
+  const ds = drinks.slice().sort((a, b) => a.t - b.t);
+  const start = ds[0].t;
+  const lastAbs = ds[ds.length - 1].t + ABSORB_MIN * MIN;
+  let bac = 0;
+  for (let t = start; t < start + 48 * 60 * MIN; t += MIN) {
+    let g = 0;
+    for (const d of ds) {
+      const a = Math.max(t, d.t), b = Math.min(t + MIN, d.t + ABSORB_MIN * MIN);
+      if (b > a) g += d.grams * (b - a) / (ABSORB_MIN * MIN);
+    }
+    bac = Math.max(0, bac + g * k - ELIM_PER_HR / 60);
+    const tt = t + MIN;
+    out.series.push({ t: tt, bac });
+    if (bac > out.peak) { out.peak = bac; out.peakT = tt; }
+    if (tt <= now) out.current = bac;
+    if (out.peak >= 0.08 && out.legalT === null && tt > out.peakT && bac < 0.08) out.legalT = tt;
+    if (tt >= lastAbs && bac === 0 && out.soberT === null) out.soberT = tt;
+    if (tt >= lastAbs && bac === 0 && tt >= now) break;
+  }
+  if (now < start) out.current = 0;
+  return out;
+}
+
+const KEY = 'lastcall.v1';
+const $ = id => document.getElementById(id);
+const now0 = Date.now();
+function exampleState() {
+  const b = gramsOf(12, 5), w = gramsOf(5, 12), s = gramsOf(1.5, 40);
+  return { example: true, settings: { weight: 180, unit: 'lb', sex: 'm' }, drinks: [
+    { id: 1, t: now0 - 150 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b },
+    { id: 2, t: now0 - 110 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b },
+    { id: 3, t: now0 - 60 * MIN, label: 'Wine', detail: '5 oz · 12%', grams: w },
+    { id: 4, t: now0 - 20 * MIN, label: 'Shot / cocktail', detail: '1.5 oz · 40%', grams: s } ] };
+}
+let st;
+try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; }
+if (!st || !st.settings || !Array.isArray(st.drinks)) st = exampleState();
+function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+const fmtT = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function fmtDur(ms) { if (ms <= 0) return 'now'; const m = Math.round(ms / MIN); const h = Math.floor(m / 60); return 'in ' + (h ? h + 'h ' : '') + (m % 60) + 'm'; }
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function band(b) {
+  if (b <= 0) return ['Sober', 'var(--ok)'];
+  if (b < 0.05) return ['Under 0.05', 'var(--ok)'];
+  if (b < 0.08) return ['0.05–0.08: impaired', 'var(--warn)'];
+  return ['Over the 0.08 legal limit', 'var(--bad)'];
+}
+
+function addDrink(label, detail, grams) {
+  if (st.example) { st.drinks = []; st.example = false; }
+  st.drinks.push({ id: Date.now() + Math.random(), t: Date.now(), label, detail, grams });
+  save(); render();
+}
+
+function chart(sim, now) {
+  const el = $('chart');
+  if (!sim.series.length) { el.innerHTML = ''; return; }
+  const W = 480, H = 170, L = 34, Rt = 8, T = 10, B = 24;
+  const t0 = sim.series[0].t - 30 * MIN, t1 = Math.max(sim.series[sim.series.length - 1].t, now);
+  const ymax = Math.max(0.1, Math.ceil((sim.peak + 0.01) * 50) / 50);
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - Rt), y = v => T + (1 - v / ymax) * (H - T - B);
+  let d = `M${x(t0).toFixed(1)},${y(0).toFixed(1)}`;
+  sim.series.forEach((p, i) => { if (i % 3 === 0 || i === sim.series.length - 1) d += `L${x(p.t).toFixed(1)},${y(p.bac).toFixed(1)}`; });
+  const area = d + `L${x(sim.series[sim.series.length - 1].t).toFixed(1)},${y(0)}Z`;
+  let g = '';
+  for (let v = 0; v <= ymax + 1e-9; v += ymax > 0.15 ? 0.05 : 0.02) g += `<line x1="${L}" x2="${W - Rt}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 4}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--mono)">${v.toFixed(2)}</text>`;
+  const step = (t1 - t0) > 8 * 3600e3 ? 2 * 3600e3 : 3600e3;
+  for (let t = Math.ceil(t0 / step) * step; t <= t1; t += step) g += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--muted)">${new Date(t).toLocaleTimeString([], { hour: 'numeric' })}</text>`;
+  const leg = `<line x1="${L}" x2="${W - Rt}" y1="${y(0.08)}" y2="${y(0.08)}" stroke="var(--bad)" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${W - Rt}" y="${y(0.08) - 4}" text-anchor="end" font-size="10" fill="var(--bad)">0.08 limit</text>`;
+  const nx = x(Math.min(Math.max(now, t0), t1));
+  const nowM = `<line x1="${nx}" x2="${nx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1"/><circle cx="${nx}" cy="${y(sim.current)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><text x="${nx + 6}" y="${T + 9}" font-size="10" fill="var(--ink)">now</text>`;
+  const dots = st.drinks.map(dr => `<circle cx="${x(dr.t)}" cy="${y(0)}" r="3" fill="var(--muted)"/>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Estimated BAC over time">${g}<path d="${area}" fill="var(--accent)" fill-opacity=".14"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.2"/>${leg}${dots}${nowM}</svg>`;
+}
+
+function render() {
+  const now = Date.now();
+  $('clock').textContent = fmtT(now);
+  $('exBanner').hidden = !st.example;
+  const s = st.settings;
+  if (document.activeElement !== $('weight')) $('weight').value = s.weight || '';
+  $('unit').value = s.unit; $('sex').value = s.sex;
+  const sim = simulate(st.drinks, s, now);
+  $('bac').innerHTML = sim.current.toFixed(3) + '<span>%</span>';
+  const [lbl, col] = band(sim.current);
+  $('pill').textContent = lbl; $('pill').style.background = col;
+  $('peak').textContent = sim.peak ? sim.peak.toFixed(3) : '—';
+  $('peakAt').textContent = sim.peakT ? fmtT(sim.peakT) : '';
+  if (sim.peak < 0.08) { $('legal').textContent = sim.peak ? 'Never over' : '—'; $('legalIn').textContent = ''; }
+  else { $('legal').textContent = sim.legalT ? fmtT(sim.legalT) : '—'; $('legalIn').textContent = sim.legalT ? fmtDur(sim.legalT - now) : ''; }
+  $('sober').textContent = sim.soberT ? fmtT(sim.soberT) : '—';
+  $('soberIn').textContent = sim.soberT ? fmtDur(sim.soberT - now) : '';
+  chart(sim, now);
+  const ds = st.drinks.slice().sort((a, b) => b.t - a.t);
+  $('count').textContent = ds.length;
+  $('std').textContent = (ds.reduce((a, d) => a + d.grams, 0) / 14).toFixed(1);
+  $('log').innerHTML = ds.length ? ds.map(d => `<li><div class="name">${esc(d.label)}${st.example ? ' <em class="note">(example)</em>' : ''}<small>${esc(d.detail)} · ${(d.grams / 14).toFixed(1)} std</small></div><input type="time" id="t${String(d.id).replace('.', '_')}" data-id="${d.id}" value="${hhmm(d.t)}" aria-label="Time of ${esc(d.label)}"><button class="x" data-del="${d.id}" aria-label="Remove ${esc(d.label)}">×</button></li>`).join('')
+    : '<li class="empty">No drinks logged. Tap a drink above when you start one.</li>';
+  $('clearRow').hidden = !ds.length;
+}
+
+document.querySelectorAll('.pad button[data-oz]').forEach(b => b.addEventListener('click', () => {
+  const oz = +b.dataset.oz, abv = +b.dataset.abv;
+  addDrink(b.dataset.label, `${oz} oz · ${abv}%`, gramsOf(oz, abv));
+}));
+$('customToggle').addEventListener('click', () => { $('customForm').hidden = !$('customForm').hidden; });
+$('customForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const oz = parseFloat($('cOz').value), abv = parseFloat($('cAbv').value);
+  if (!(oz > 0) || !(abv > 0)) return;
+  addDrink($('cName').value.trim() || 'Custom', `${oz} oz · ${abv}%`, gramsOf(oz, abv));
+  $('customForm').hidden = true;
+});
+$('log').addEventListener('click', e => {
+  const id = e.target.dataset.del; if (!id) return;
+  st.drinks = st.drinks.filter(d => String(d.id) !== id); save(); render();
+});
+$('log').addEventListener('change', e => {
+  const id = e.target.dataset.id; if (!id || !e.target.value) return;
+  const [h, m] = e.target.value.split(':').map(Number);
+  const d = new Date(); d.setHours(h, m, 0, 0);
+  let t = d.getTime(); if (t > Date.now() + 5 * MIN) t -= 24 * 3600e3;
+  const dr = st.drinks.find(x => String(x.id) === id); if (dr) dr.t = t;
+  save(); render();
+});
+$('clearBtn').addEventListener('click', () => { $('clearRow').hidden = true; $('confirmRow').hidden = false; });
+$('cancelClear').addEventListener('click', () => { $('confirmRow').hidden = true; render(); });
+$('confirmClear').addEventListener('click', () => { st.drinks = []; st.example = false; $('confirmRow').hidden = true; save(); render(); });
+$('startFresh').addEventListener('click', () => { st.drinks = []; st.example = false; save(); render(); $('weight').focus(); });
+$('weight').addEventListener('input', () => { const v = parseFloat($('weight').value); if (v > 0) { st.settings.weight = v; save(); render(); } });
+$('unit').addEventListener('change', () => {
+  const u = $('unit').value, s = st.settings;
+  if (u !== s.unit && s.weight) s.weight = Math.round(u === 'kg' ? s.weight * 0.453592 : s.weight / 0.453592);
+  s.unit = u; save(); render();
+});
+$('sex').addEventListener('change', () => { st.settings.sex = $('sex').value; save(); render(); });
+render();
+setInterval(render, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+</script>
+</body></html>
