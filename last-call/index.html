@@ -34,7 +34,7 @@ h2{font-family:var(--display);font-weight:600;font-size:13px;text-transform:uppe
 .stats div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .stats b{font-family:var(--mono);font-weight:500;font-size:15px;font-variant-numeric:tabular-nums}
 .stats small{color:var(--muted);font-size:12px}
-svg{display:block;width:100%;height:auto}
+#chart svg{display:block;width:100%;height:auto}
 .pad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .pad button{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:left;color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .pad button:active{transform:scale(.98)}
@@ -59,8 +59,27 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .row label{flex:1 1 120px}
 .note{font-size:12.5px;color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{flex:1;font:inherit;font-weight:600;font-size:14px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#map{height:300px;border-radius:12px;border:1px solid var(--line);background:var(--surface);z-index:0}
+.mapnote{padding:40px 16px;text-align:center;color:var(--muted)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
+:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
+.pin{background:var(--accent);color:var(--accent-ink);border:2px solid var(--surface);border-radius:999px;font:600 12px/20px var(--body);text-align:center;width:20px;height:20px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.places{list-style:none;margin:10px 0 0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.places li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
+.places li:first-child{border-top:0}
+.places input{width:100%;box-sizing:border-box;padding:6px 8px;font-size:15px;background:transparent;border-color:transparent}
+.places input:focus{background:var(--bg);border-color:var(--line)}
+.places small{color:var(--muted);white-space:nowrap;text-align:right}
+.log .where{color:var(--accent)}
+.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--ink)}
+.check input{width:20px;height:20px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 </head><body><div class="wrap">
   <div class="top"><h1>Last Call</h1><small id="clock"></small></div>
@@ -111,15 +130,27 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   </section>
 
   <section>
+    <h2>Bar hop map</h2>
+    <div class="tabs" role="group" aria-label="Map view">
+      <button id="tabTonight" aria-pressed="true">Tonight's route</button>
+      <button id="tabAll" aria-pressed="false">All places</button>
+    </div>
+    <div id="map"></div>
+    <p class="note" id="mapCaption" style="margin:6px 0 0"></p>
+    <ul class="places" id="places"></ul>
+  </section>
+
+  <section>
     <h2>You</h2>
     <div class="row">
       <label>Body weight<input id="weight" type="number" inputmode="decimal" min="40" max="700" step="1"></label>
       <label>Unit<select id="unit"><option value="lb">lb</option><option value="kg">kg</option></select></label>
       <label>Sex (for body water)<select id="sex"><option value="m">Male</option><option value="f">Female</option></select></label>
     </div>
+    <div class="row" style="margin-top:10px"><label class="check"><input type="checkbox" id="geoOn"> Record where I buy each drink</label></div>
   </section>
 
-  <p class="note">Estimate from the Widmark formula: alcohol grams ÷ (body weight × body-water ratio 0.68 male / 0.55 female), each drink absorbed over 30 minutes, eliminated at 0.015% per hour. One standard drink is 14 g of alcohol. Food, medications, health and metabolism move real numbers by a wide margin. Never use this to decide whether you can drive. Your log stays on this phone only.</p>
+  <p class="note">Estimate from the Widmark formula: alcohol grams ÷ (body weight × body-water ratio 0.68 male / 0.55 female), each drink absorbed over 30 minutes, eliminated at 0.015% per hour. One standard drink is 14 g of alcohol. Food, medications, health and metabolism move real numbers by a wide margin. Never use this to decide whether you can drive. Your log and places stay on this phone; to name a new place, its coordinates are sent once to OpenStreetMap, which also serves the map tiles.</p>
 </div>
 
 <script>
@@ -166,16 +197,124 @@ const $ = id => document.getElementById(id);
 const now0 = Date.now();
 function exampleState() {
   const b = gramsOf(12, 5), w = gramsOf(5, 12), s = gramsOf(1.5, 40);
-  return { example: true, settings: { weight: 180, unit: 'lb', sex: 'm' }, drinks: [
-    { id: 1, t: now0 - 150 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b },
-    { id: 2, t: now0 - 110 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b },
-    { id: 3, t: now0 - 60 * MIN, label: 'Wine', detail: '5 oz · 12%', grams: w },
-    { id: 4, t: now0 - 20 * MIN, label: 'Shot / cocktail', detail: '1.5 oz · 40%', grams: s } ] };
+  return { example: true, geo: true, nightId: 'ex', archive: [], settings: { weight: 180, unit: 'lb', sex: 'm' },
+    places: [
+      { id: 'ex1', ex: true, name: 'Example bar A', lat: 33.7795, lng: -84.3530 },
+      { id: 'ex2', ex: true, name: 'Example bar B', lat: 33.7742, lng: -84.3518 },
+      { id: 'ex3', ex: true, name: 'Example bar C', lat: 33.7700, lng: -84.3534 } ],
+    drinks: [
+    { id: 1, t: now0 - 150 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b, pid: 'ex1', night: 'ex' },
+    { id: 2, t: now0 - 110 * MIN, label: 'Beer', detail: '12 oz · 5%', grams: b, pid: 'ex1', night: 'ex' },
+    { id: 3, t: now0 - 60 * MIN, label: 'Wine', detail: '5 oz · 12%', grams: w, pid: 'ex2', night: 'ex' },
+    { id: 4, t: now0 - 20 * MIN, label: 'Shot / cocktail', detail: '1.5 oz · 40%', grams: s, pid: 'ex3', night: 'ex' } ] };
 }
 let st;
 try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; }
 if (!st || !st.settings || !Array.isArray(st.drinks)) st = exampleState();
+// Older saves have no location data: add the new fields without touching the drinks.
+if (!Array.isArray(st.places)) st.places = [];
+if (!Array.isArray(st.archive)) st.archive = [];
+if (typeof st.geo !== 'boolean') st.geo = true;
+if (!st.nightId) st.nightId = newNightId();
+function newNightId() { return 'n' + Date.now().toString(36); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+// ---- Places: every drink is tied to the place it was bought, matched by distance ----
+const MATCH_M = 60;          // a new fix within this many meters of a known place is that place
+function distM(a, b) {
+  const R = 6371000, toR = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function placeById(id) { return st.places.find(p => p.id === id); }
+function nearestPlace(pt, acc) {
+  const radius = Math.min(150, Math.max(MATCH_M, acc || 0));
+  let best = null, bd = Infinity;
+  for (const p of st.places) { if (p.ex) continue; const d = distM(p, pt); if (d < bd) { bd = d; best = p; } }
+  return bd <= radius ? best : null;
+}
+function clearExample() {
+  st.drinks = []; st.example = false;
+  st.places = st.places.filter(p => !p.ex);
+  st.nightId = newNightId();
+}
+function locate(drink) {
+  if (!st.geo || !navigator.geolocation) return;
+  drink.loc = 'pending'; save();
+  navigator.geolocation.getCurrentPosition(pos => {
+    const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    const acc = pos.coords.accuracy;
+    let p = nearestPlace(pt, acc);
+    if (!p) {
+      p = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: 'Locating name…', lat: pt.lat, lng: pt.lng, acc: Math.round(acc) };
+      st.places.push(p);
+      nameFromMap(p);
+    }
+    const d = st.drinks.find(x => x.id === drink.id);
+    if (d) { d.pid = p.id; delete d.loc; }
+    save(); render(true);
+  }, () => {
+    const d = st.drinks.find(x => x.id === drink.id);
+    if (d) d.loc = 'none';
+    save(); render();
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+// Reverse lookup of the nearest named spot (bar, restaurant, or the street address) from OpenStreetMap.
+async function nameFromMap(p) {
+  let name = 'Unnamed place';
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${p.lat.toFixed(6)}&lon=${p.lng.toFixed(6)}`, { headers: { 'Accept-Language': 'en' } });
+    if (r.ok) {
+      const j = await r.json(), a = j.address || {};
+      const street = [a.house_number, a.road].filter(Boolean).join(' ');
+      name = j.name || street || (j.display_name || '').split(',').slice(0, 2).join(',') || name;
+    }
+  } catch (e) {}
+  const live = placeById(p.id);
+  if (live && !live.renamed) { live.name = name; save(); render(true); }
+}
+// Every drink ever logged with a place: past nights (archive) plus tonight.
+function allVisits() {
+  return st.archive.concat(st.drinks.filter(d => d.pid).map(d => ({ t: d.t, pid: d.pid, night: d.night || st.nightId })));
+}
+function placeStats() {
+  const m = new Map(st.places.map(p => [p.id, { p, drinks: 0, nights: new Set(), last: 0 }]));
+  for (const v of allVisits()) {
+    const s = m.get(v.pid); if (!s) continue;
+    s.drinks++; s.nights.add(v.night); s.last = Math.max(s.last, v.t);
+  }
+  return [...m.values()].filter(s => s.drinks > 0 || !s.p.ex).sort((a, b) => b.last - a.last);
+}
+// Walking path between two places along streets (OpenStreetMap walking router), cached per pair.
+if (!st.legs || typeof st.legs !== 'object') st.legs = {};
+const legBusy = new Set();
+function legKey(a, b) { return a.id + '>' + b.id + '@' + a.lat.toFixed(5) + ',' + b.lat.toFixed(5); }
+async function fetchLeg(a, b) {
+  const k = legKey(a, b);
+  if (st.legs[k] || legBusy.has(k)) return;
+  legBusy.add(k);
+  try {
+    const r = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`);
+    const j = r.ok ? await r.json() : null;
+    const rt = j && j.code === 'Ok' && j.routes[0];
+    if (rt) {
+      st.legs[k] = { m: Math.round(rt.distance), pts: rt.geometry.coordinates.map(c => [+c[1].toFixed(6), +c[0].toFixed(6)]) };
+      save(); render(true);
+    }
+  } catch (e) {}
+  legBusy.delete(k);
+}
+function tonightStops() {
+  const stops = [];
+  for (const d of st.drinks.slice().sort((a, b) => a.t - b.t)) {
+    if (!d.pid || !placeById(d.pid)) continue;
+    const last = stops[stops.length - 1];
+    if (last && last.pid === d.pid) { last.n++; last.end = d.t; }
+    else stops.push({ pid: d.pid, t: d.t, end: d.t, n: 1 });
+  }
+  return stops;
+}
 
 const fmtT = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function fmtDur(ms) { if (ms <= 0) return 'now'; const m = Math.round(ms / MIN); const h = Math.floor(m / 60); return 'in ' + (h ? h + 'h ' : '') + (m % 60) + 'm'; }
@@ -190,9 +329,74 @@ function band(b) {
 }
 
 function addDrink(label, detail, grams) {
-  if (st.example) { st.drinks = []; st.example = false; }
-  st.drinks.push({ id: Date.now() + Math.random(), t: Date.now(), label, detail, grams });
+  if (st.example) clearExample();
+  const d = { id: Date.now() + Math.random(), t: Date.now(), label, detail, grams, night: st.nightId };
+  st.drinks.push(d);
   save(); render();
+  locate(d);
+}
+
+// ---- Map ----
+let mapView = 'tonight', map = null, layer = null, lastSig = '', lastFit = '';
+const miles = m => (m / 1609.34).toFixed(m < 1609 ? 2 : 1) + ' mi';
+function drawMap(force) {
+  const el = $('map');
+  const stats = placeStats().filter(s => s.drinks > 0);
+  const stops = tonightStops();
+  if (typeof L === 'undefined') { el.innerHTML = '<div class="mapnote">Map needs a connection to load.</div>'; return; }
+  if (!map) {
+    el.innerHTML = '';
+    map = L.map(el, { zoomControl: true, attributionControl: true }).setView([33.7756, -84.3528], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+  }
+  const sig = mapView + JSON.stringify(mapView === 'tonight' ? stops : stats.map(s => [s.p.id, s.drinks, s.p.name])) + Object.keys(st.legs).length;
+  if (!force && sig === lastSig) return;
+  lastSig = sig;
+  layer.clearLayers();
+  const pts = [];
+  if (mapView === 'tonight') {
+    let walked = 0, estimated = false;
+    for (let i = 1; i < stops.length; i++) {
+      const a = placeById(stops[i - 1].pid), b = placeById(stops[i].pid);
+      const leg = st.legs[legKey(a, b)];
+      if (leg) { L.polyline(leg.pts, { color: '#1F5F8B', weight: 4, opacity: .85 }).addTo(layer); walked += leg.m; leg.pts.forEach(p => pts.push(p)); }
+      else { L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: '#1F5F8B', weight: 3, dashArray: '6 6' }).addTo(layer); estimated = true; walked += distM(a, b); if (!a.ex) fetchLeg(a, b); }
+    }
+    // One pin per place; a place visited twice shows both stop numbers ("1·3").
+    const byPlace = new Map();
+    stops.forEach((s, i) => { if (!byPlace.has(s.pid)) byPlace.set(s.pid, []); byPlace.get(s.pid).push([i + 1, s]); });
+    byPlace.forEach((list, pid) => {
+      const p = placeById(pid); pts.push([p.lat, p.lng]);
+      const label = list.map(x => x[0]).join('·');
+      const w = 12 + 8 * label.length;
+      L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', html: `<div class="pin" style="width:${w}px">${label}</div>`, iconSize: [w, 20], iconAnchor: [w / 2, 10] }) }).addTo(layer)
+        .bindPopup(`<b>${esc(p.name)}</b>` + list.map(([n, s]) => `<br>Stop ${n}: ${fmtT(s.t)}${s.end !== s.t ? '–' + fmtT(s.end) : ''} · ${s.n} drink${s.n > 1 ? 's' : ''}`).join(''));
+    });
+    const unplaced = st.drinks.filter(d => !d.pid).length;
+    $('mapCaption').textContent = stops.length
+      ? `${stops.length} stop${stops.length > 1 ? 's' : ''}` + (stops.length > 1 ? ` · about ${miles(walked)} walked${estimated ? ' (some legs straight-line until directions load)' : ', likely street path'}` : '') + (unplaced ? ` · ${unplaced} drink${unplaced > 1 ? 's' : ''} without a location` : '')
+      : (st.drinks.length ? 'No locations yet for tonight’s drinks.' : 'Your route draws itself as you log drinks.');
+  } else {
+    const max = Math.max(1, ...stats.map(s => s.drinks));
+    stats.forEach(s => {
+      pts.push([s.p.lat, s.p.lng]);
+      L.circleMarker([s.p.lat, s.p.lng], { radius: 6 + 10 * Math.sqrt(s.drinks / max), color: '#1F5F8B', weight: 2, fillColor: '#1F5F8B', fillOpacity: .35 }).addTo(layer)
+        .bindPopup(`<b>${esc(s.p.name)}</b><br>${s.drinks} drink${s.drinks > 1 ? 's' : ''} · ${s.nights.size} night${s.nights.size > 1 ? 's' : ''}<br>Last: ${new Date(s.last).toLocaleDateString()}`);
+    });
+    $('mapCaption').textContent = stats.length ? `${stats.length} place${stats.length > 1 ? 's' : ''} · ${stats.reduce((a, s) => a + s.drinks, 0)} drinks bought` : 'Places you buy drinks will collect here, night after night.';
+  }
+  // Re-frame only when the view or the set of places changes, so a pan or zoom isn't undone every 30 s.
+  const fitKey = mapView + '|' + (mapView === 'tonight' ? stops.map(s => s.pid).join() : stats.map(s => s.p.id).join());
+  const refit = fitKey !== lastFit; lastFit = fitKey;
+  if (refit && pts.length) pts.length === 1 ? map.setView(pts[0], 16) : map.fitBounds(pts, { padding: [28, 28], maxZoom: 17 });
+  setTimeout(() => map.invalidateSize(), 0);
+}
+function drawPlaces() {
+  const stats = placeStats();
+  const show = mapView === 'tonight' ? stats.filter(s => tonightStops().some(x => x.pid === s.p.id)) : stats;
+  $('places').hidden = !show.length;
+  $('places').innerHTML = show.map(s => `<li><input data-pid="${s.p.id}" value="${esc(s.p.name)}" aria-label="Rename place" maxlength="60"><small>${s.drinks} drink${s.drinks !== 1 ? 's' : ''}${mapView === 'all' ? ' · ' + s.nights.size + ' night' + (s.nights.size !== 1 ? 's' : '') : ''}</small></li>`).join('');
 }
 
 function chart(sim, now) {
@@ -216,8 +420,15 @@ function chart(sim, now) {
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Estimated BAC over time">${g}<path d="${area}" fill="var(--accent)" fill-opacity=".14"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.2"/>${leg}${dots}${nowM}</svg>`;
 }
 
-function render() {
+function whereOf(d) {
+  if (d.pid && placeById(d.pid)) return ' · <span class="where">' + esc(placeById(d.pid).name) + '</span>';
+  if (d.loc === 'pending') return ' · locating…';
+  if (d.loc === 'none') return ' · no location';
+  return '';
+}
+function render(mapForce) {
   const now = Date.now();
+  $('geoOn').checked = st.geo;
   $('clock').textContent = fmtT(now);
   $('exBanner').hidden = !st.example;
   const s = st.settings;
@@ -237,9 +448,11 @@ function render() {
   const ds = st.drinks.slice().sort((a, b) => b.t - a.t);
   $('count').textContent = ds.length;
   $('std').textContent = (ds.reduce((a, d) => a + d.grams, 0) / 14).toFixed(1);
-  $('log').innerHTML = ds.length ? ds.map(d => `<li><div class="name">${esc(d.label)}${st.example ? ' <em class="note">(example)</em>' : ''}<small>${esc(d.detail)} · ${(d.grams / 14).toFixed(1)} std</small></div><input type="time" id="t${String(d.id).replace('.', '_')}" data-id="${d.id}" value="${hhmm(d.t)}" aria-label="Time of ${esc(d.label)}"><button class="x" data-del="${d.id}" aria-label="Remove ${esc(d.label)}">×</button></li>`).join('')
+  $('log').innerHTML = ds.length ? ds.map(d => `<li><div class="name">${esc(d.label)}${st.example ? ' <em class="note">(example)</em>' : ''}<small>${esc(d.detail)} · ${(d.grams / 14).toFixed(1)} std${whereOf(d)}</small></div><input type="time" id="t${String(d.id).replace('.', '_')}" data-id="${d.id}" value="${hhmm(d.t)}" aria-label="Time of ${esc(d.label)}"><button class="x" data-del="${d.id}" aria-label="Remove ${esc(d.label)}">×</button></li>`).join('')
     : '<li class="empty">No drinks logged. Tap a drink above when you start one.</li>';
   $('clearRow').hidden = !ds.length;
+  drawMap(mapForce);
+  if (!$('places').contains(document.activeElement)) drawPlaces();
 }
 
 document.querySelectorAll('.pad button[data-oz]').forEach(b => b.addEventListener('click', () => {
@@ -268,8 +481,23 @@ $('log').addEventListener('change', e => {
 });
 $('clearBtn').addEventListener('click', () => { $('clearRow').hidden = true; $('confirmRow').hidden = false; });
 $('cancelClear').addEventListener('click', () => { $('confirmRow').hidden = true; render(); });
-$('confirmClear').addEventListener('click', () => { st.drinks = []; st.example = false; $('confirmRow').hidden = true; save(); render(); });
-$('startFresh').addEventListener('click', () => { st.drinks = []; st.example = false; save(); render(); $('weight').focus(); });
+$('confirmClear').addEventListener('click', () => {
+  // Tonight's drinks leave the BAC log, but where they were bought is kept for the All places map.
+  if (!st.example) st.drinks.filter(d => d.pid).forEach(d => st.archive.push({ t: d.t, pid: d.pid, night: d.night || st.nightId }));
+  if (st.example) clearExample(); else { st.drinks = []; st.nightId = newNightId(); }
+  $('confirmRow').hidden = true; save(); render();
+});
+$('startFresh').addEventListener('click', () => { clearExample(); save(); render(); $('weight').focus(); });
+$('geoOn').addEventListener('change', () => { st.geo = $('geoOn').checked; save(); });
+function setView(v) { mapView = v; $('tabTonight').setAttribute('aria-pressed', v === 'tonight'); $('tabAll').setAttribute('aria-pressed', v === 'all'); render(true); }
+$('tabTonight').addEventListener('click', () => setView('tonight'));
+$('tabAll').addEventListener('click', () => setView('all'));
+$('places').addEventListener('change', e => {
+  const p = placeById(e.target.dataset.pid); if (!p) return;
+  const v = e.target.value.trim(); if (!v) { e.target.value = p.name; return; }
+  p.name = v; p.renamed = true; save(); render(true);
+});
+$('places').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 $('weight').addEventListener('input', () => { const v = parseFloat($('weight').value); if (v > 0) { st.settings.weight = v; save(); render(); } });
 $('unit').addEventListener('change', () => {
   const u = $('unit').value, s = st.settings;
